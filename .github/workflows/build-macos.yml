@@ -1,0 +1,43 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Apple targets (build universel Intel + Apple Silicon)
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri app (universal macOS)
+        run: npm run tauri build -- --target universal-apple-darwin
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cabinet-epidemiologie-macos-app
+          path: src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+
+      - name: Upload .dmg installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: cabinet-epidemiologie-macos-dmg
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
